@@ -3,7 +3,7 @@
 properties([[$class: 'BuildDiscarderProperty', strategy: [$class: 'LogRotator', numToKeepStr: '10']]])
 
 stage('build') {
-    node {
+    node('node01') {
         checkout scm
         def v = version()
         currentBuild.displayName = "${env.BRANCH_NAME}-${v}-${env.BUILD_NUMBER}"
@@ -12,7 +12,7 @@ stage('build') {
 }
 
 stage('build docker image') {
-    node {
+    node('node01') {
         mvn "clean package docker:build -DskipTests"
     }
 }
@@ -27,7 +27,7 @@ if (branch_deployment_environment) {
                 input "Deploy to ${branch_deployment_environment} ?"
             }
         }
-        node {
+        node('node01') {
             sh "echo Deploying to ${branch_deployment_environment}"
             //TODO specify the deployment
         }
@@ -35,7 +35,7 @@ if (branch_deployment_environment) {
 
     if (branch_deployment_environment != "prod") {
         stage('integration tests') {
-            node {
+            node('node01') {
                 sh "echo Running integration tests in ${branch_deployment_environment}"
                 //TODO do the actual tests
             }
@@ -48,7 +48,7 @@ if (branch_type == "dev") {
         timeout(time: 1, unit: 'HOURS') {
             input "Do you want to start a release?"
         }
-        node {
+        node('node01') {
             sshagent(['f1ad0f5d-df0d-441a-bea0-fd2c34801427']) {
                 mvn("jgitflow:release-start")
             }
@@ -61,7 +61,7 @@ if (branch_type == "release") {
         timeout(time: 1, unit: 'HOURS') {
             input "Is the release finished?"
         }
-        node {
+        node('node01') {
             sshagent(['f1ad0f5d-df0d-441a-bea0-fd2c34801427']) {
                 mvn("jgitflow:release-finish -Dmaven.javadoc.skip=true -DnoDeploy=true")
             }
@@ -74,7 +74,7 @@ if (branch_type == "hotfix") {
         timeout(time: 1, unit: 'HOURS') {
             input "Is the hotfix finished?"
         }
-        node {
+        node('node01') {
             sshagent(['f1ad0f5d-df0d-441a-bea0-fd2c34801427']) {
                 mvn("jgitflow:hotfix-finish -Dmaven.javadoc.skip=true -DnoDeploy=true")
             }
